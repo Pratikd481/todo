@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -50,5 +51,27 @@ class Task extends Model
     public function scopeMainTask(Builder $query): void
     {
         $query->whereNull('parent_id');
+    }
+
+    public function scopeDueToday(Builder $query): void
+    {
+        $query->where('due_date', '==', Carbon::now()->toDateTimeString());
+    }
+
+    public function scopeDueThisWeek(Builder $query): void
+    {
+        $query->where('due_date', '>=', Carbon::now()->subWeek(1)->toDateTimeString());
+    }
+
+    public function scopeDueNextWeek(Builder $query): void
+    {
+        $query->where('due_date', '<=', Carbon::now()->subWeek(1)->toDateTimeString())->where('due_date', '>=', Carbon::now()->subWeek(2)->toDateTimeString());
+    }
+
+
+
+    public function scopeOverDue(Builder $query): void
+    {
+        $query->where('due_date', '>', Carbon::now()->toDateTimeString());
     }
 }

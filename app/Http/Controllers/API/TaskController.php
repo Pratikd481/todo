@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\TaskResource;
 use App\Models\Task;
 use App\Platform\Traits\ApiResponser;
+use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
 
@@ -17,9 +18,62 @@ class TaskController extends Controller
      *
      * @return \Illuminate\Http\Response
      * list of pending task
+     *
+     * all business logic are writen in controller but it can be refactored using service class. It can be done at latter stage
      */
-    public function index()
+    public function index(Request $request)
     {
+        $tasks = Task::with(['children' => function ($query) use ($request) {
+
+            if ($request->has('due_date')) {
+                $due_date = $request->due_date;
+                switch ($due_date) {
+                    case 'Today':
+                        $query->dueToday();
+                        break;
+                    case 'This Week':
+                        $query->dueThisWeek();
+                        break;
+                    case 'Next Week':
+                        $query->dueNextWeek();
+                        break;
+                    case 'Overdue':
+                        $query->overDue();
+                        break;
+                }
+            }
+        }]);
+
+        if ($request->has('due_date')) {
+            $due_date = $request->due_date;
+            switch ($due_date) {
+                case 'Today':
+                    $tasks->dueToday();
+                    break;
+                case 'This Week':
+                    $tasks->dueThisWeek();
+                    break;
+                case 'Next Week':
+                    $tasks->dueNextWeek();
+                    break;
+                case 'Overdue':
+                    $tasks->overDue();
+                    break;
+            }
+        }
+
+        if ($request->has('search')) {
+            $search = $request->search;
+            $tasks->where('title', 'LIKE', "%{$search}%");
+        }
+        if ($request->has('perpage')) {
+            $tasks = $tasks->paginate($request->perpage);
+        } else {
+            $tasks = $tasks->paginate(10);
+        }
+
+
+        return $this->success(['tasks' => new TaskResource($tasks)], 'List of tasks', 200);
     }
 
     /**
@@ -131,7 +185,13 @@ class TaskController extends Controller
     {
         $tasks = Task::with(['children' => function ($query) {
             $query->pending();
-        }])->mainTask()->pending()->paginate($request->perpage);
+        }])->mainTask()->pending(); //->paginate($request->perpage);
+
+        if ($request->has('perpage')) {
+            $tasks = $tasks->paginate($request->perpage);
+        } else {
+            $tasks = $tasks->paginate(10);
+        }
         return $this->success(['tasks' => new TaskResource($tasks)], 'List of tasks', 200);
     }
 }
