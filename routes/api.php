@@ -19,5 +19,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-
+Route::post('/tasks/changeStatus', [TaskController::class, 'changeStatus'])->name('tasks.changeStatus');
+Route::get('/tasks/pending', [TaskController::class, 'pendingList'])->name('tasks.pending');
 Route::apiResource('tasks', TaskController::class);
+
